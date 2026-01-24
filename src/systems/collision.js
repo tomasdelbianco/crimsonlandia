@@ -19,10 +19,26 @@ export function updateCollisions(state) {
     // Only check player bullets (enemies don't shoot yet)
     if (bullet.owner !== 'player') continue;
 
+    // Initialize hit tracking for piercing bullets
+    if (!bullet.hitEnemies) {
+      bullet.hitEnemies = new Set();
+    }
+
     for (const enemy of enemies) {
+      // Skip if already hit this enemy (piercing bullets)
+      if (bullet.hitEnemies.has(enemy.id)) continue;
+
       if (checkCircleCollision(bullet, enemy)) {
         handleBulletEnemyCollision(state, bullet, enemy);
-        break; // Bullet can only hit one enemy
+
+        // Track that this bullet hit this enemy
+        bullet.hitEnemies.add(enemy.id);
+
+        // Non-piercing bullets stop after first hit
+        if (!bullet.piercing) {
+          break;
+        }
+        // Piercing bullets continue checking other enemies
       }
     }
   }
@@ -63,8 +79,10 @@ function handleBulletEnemyCollision(state, bullet, enemy) {
   // Deal damage to enemy
   enemy.hp -= bullet.damage;
 
-  // Mark bullet for removal
-  bullet.ttl = 0;
+  // Mark bullet for removal (only for non-piercing bullets)
+  if (!bullet.piercing) {
+    bullet.ttl = 0;
+  }
 
   // Sound hook
   playHit();

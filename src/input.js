@@ -49,6 +49,28 @@ function onKeyDown(e, state) {
     case 'arrowright':
       state.input.keys.right = true;
       break;
+    case 'r':
+      state.input.keys.reload = true;
+      break;
+    // Weapon switching (1-6)
+    case '1':
+      state.input.keys.weaponSwitch = 0;
+      break;
+    case '2':
+      state.input.keys.weaponSwitch = 1;
+      break;
+    case '3':
+      state.input.keys.weaponSwitch = 2;
+      break;
+    case '4':
+      state.input.keys.weaponSwitch = 3;
+      break;
+    case '5':
+      state.input.keys.weaponSwitch = 4;
+      break;
+    case '6':
+      state.input.keys.weaponSwitch = 5;
+      break;
   }
 }
 
@@ -76,6 +98,9 @@ function onKeyUp(e, state) {
     case 'd':
     case 'arrowright':
       state.input.keys.right = false;
+      break;
+    case 'r':
+      state.input.keys.reload = false;
       break;
   }
 }

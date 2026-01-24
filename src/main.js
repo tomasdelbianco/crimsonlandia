@@ -4,11 +4,12 @@ import { initInput } from './input.js';
 import { createPlayer } from './entities/player.js';
 import { createRNG } from './rng.js';
 import { updateMovement } from './systems/movement.js';
-import { updateShooting } from './systems/shooting.js';
+import { updateShooting, switchWeapon } from './systems/shooting.js';
 import { updateEnemies } from './systems/enemies.js';
 import { updateCollisions } from './systems/collision.js';
 import { updateLifecycle } from './systems/lifecycle.js';
 import { drawEntities } from './render/draw.js';
+import { getWeapon, getWeaponIds } from './data/weapons.js';
 
 // Constants
 const TICK_RATE = 60; // Hz
@@ -72,6 +73,18 @@ function tick(dt) {
   // Log every 60 ticks (once per second)
   if (state.tick % 60 === 0) {
     console.log(`Tick ${state.tick} - Time: ${state.time.toFixed(2)}s`);
+  }
+
+  // Handle weapon switching (debug keys 1-6)
+  const player = state.entities.find(e => e.type === 'player');
+  if (player && state.input.keys.weaponSwitch !== null) {
+    const weaponIds = getWeaponIds();
+    const idx = state.input.keys.weaponSwitch;
+    if (idx >= 0 && idx < weaponIds.length) {
+      switchWeapon(player, weaponIds[idx]);
+    }
+    // Clear the switch input
+    state.input.keys.weaponSwitch = null;
   }
 
   // Run game systems
@@ -151,8 +164,42 @@ function render(alpha) {
   ctx.fillText(`HP: ${player.hp}/${player.maxHp}`, 10, 20);
   ctx.fillText(`Time: ${state.time.toFixed(1)}s`, 10, 40);
 
+  // Weapon HUD (below HP)
+  const weapon = getWeapon(player.weaponId);
+  if (weapon) {
+    ctx.fillStyle = '#ffaa00';
+    ctx.fillText(`${weapon.name}`, 10, 60);
+
+    // Ammo display
+    if (player.isReloading) {
+      // Show reload progress
+      const progress = 1 - (player.reloadTimer / weapon.reloadTime);
+      const barWidth = 80;
+      const barHeight = 8;
+      const x = 10;
+      const y = 70;
+
+      // Background
+      ctx.fillStyle = '#333';
+      ctx.fillRect(x, y, barWidth, barHeight);
+
+      // Progress bar
+      ctx.fillStyle = '#ff6600';
+      ctx.fillRect(x, y, barWidth * progress, barHeight);
+
+      // Text
+      ctx.fillStyle = '#ff6600';
+      ctx.fillText('RELOADING', 10, 95);
+    } else {
+      // Show ammo count
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(`${player.currentAmmo}/${weapon.magazineSize}`, 10, 80);
+    }
+  }
+
   // Controls hint
-  ctx.fillText(`WASD: Move | Click: Shoot`, 10, height - 10);
+  ctx.fillStyle = '#888888';
+  ctx.fillText(`WASD: Move | Click: Shoot | R: Reload | 1-6: Weapons`, 10, height - 10);
 }
 
 /**

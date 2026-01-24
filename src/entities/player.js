@@ -2,14 +2,19 @@
  * Player entity factory
  */
 
+import { getWeapon } from '../data/weapons.js';
+
 /**
  * Creates a player entity
  * @param {number} id - Unique entity ID
  * @param {number} x - Initial X position
  * @param {number} y - Initial Y position
+ * @param {string} [startWeapon='pistol'] - Starting weapon ID
  * @returns {Object} Player entity
  */
-export function createPlayer(id, x, y) {
+export function createPlayer(id, x, y, startWeapon = 'pistol') {
+  const weapon = getWeapon(startWeapon);
+
   return {
     id,
     type: 'player',
@@ -23,12 +28,14 @@ export function createPlayer(id, x, y) {
     friction: true, // Apply friction when not moving
     invincible: 0, // Invincibility frames timer (seconds)
     damageFlash: 0, // Visual flash timer when taking damage
-    weapon: {
-      cooldown: 0, // Current cooldown timer
-      fireRate: 0.15, // Time between shots (150ms = ~6.6 shots/sec)
-      bulletSpeed: 500, // Bullet velocity
-      damage: 10 // Damage per bullet
-    },
+
+    // Weapon system
+    weaponId: startWeapon, // Current weapon ID (references WEAPONS data)
+    weaponCooldown: 0, // Cooldown timer between shots
+    currentAmmo: weapon.magazineSize, // Current ammo in magazine
+    isReloading: false, // Whether currently reloading
+    reloadTimer: 0, // Time remaining in reload
+
     visual: {
       kind: 'debug',
       color: '#00ff88' // Cyan/green

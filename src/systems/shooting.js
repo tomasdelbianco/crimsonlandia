@@ -1,8 +1,9 @@
 /**
- * Shooting system - Handles weapon firing and bullet spawning
+ * Shooting system - Handles weapon firing, reload, and bullet spawning
  */
 
 import { createBullet } from '../entities/bullet.js';
+import { getWeapon } from '../data/weapons.js';
 
 /**
  * Updates shooting for all entities with weapons
@@ -11,57 +12,149 @@ import { createBullet } from '../entities/bullet.js';
  */
 export function updateShooting(state, dt) {
   for (const entity of state.entities) {
-    if (entity.weapon) {
-      // Decrease cooldown
-      if (entity.weapon.cooldown > 0) {
-        entity.weapon.cooldown -= dt;
-      }
-
-      // Handle player shooting
-      if (entity.type === 'player') {
-        updatePlayerShooting(state, entity, dt);
-      }
+    if (entity.type === 'player') {
+      updatePlayerShooting(state, entity, dt);
     }
   }
 }
 
 /**
- * Handles player shooting input
+ * Handles player shooting, reload, and weapon cooldown
  * @param {import('../state.js').GameState} state
  * @param {Object} player - Player entity
  * @param {number} dt - Delta time
  */
 function updatePlayerShooting(state, player, dt) {
-  // Check if player is holding fire button and weapon is ready
-  if (state.input.mouse.down && player.weapon.cooldown <= 0) {
-    spawnBullet(state, player);
+  const weapon = getWeapon(player.weaponId);
+  if (!weapon) return;
 
-    // Reset cooldown
-    player.weapon.cooldown = player.weapon.fireRate;
+  // Handle reload
+  if (player.isReloading) {
+    player.reloadTimer -= dt;
+    if (player.reloadTimer <= 0) {
+      // Reload complete
+      player.currentAmmo = weapon.magazineSize;
+      player.isReloading = false;
+      player.reloadTimer = 0;
+      console.log(`🔫 ${weapon.name} reloaded!`);
+    }
+    return; // Can't shoot while reloading
+  }
+
+  // Decrease cooldown
+  if (player.weaponCooldown > 0) {
+    player.weaponCooldown -= dt;
+  }
+
+  // Check for manual reload (R key)
+  if (state.input.keys.reload && player.currentAmmo < weapon.magazineSize) {
+    startReload(player, weapon);
+    return;
+  }
+
+  // Check if player is holding fire button and weapon is ready
+  if (state.input.mouse.down && player.weaponCooldown <= 0) {
+    // Auto-reload if empty
+    if (player.currentAmmo <= 0) {
+      startReload(player, weapon);
+      return;
+    }
+
+    // Fire weapon
+    fireWeapon(state, player, weapon);
+
+    // Consume ammo and reset cooldown
+    player.currentAmmo--;
+    player.weaponCooldown = weapon.fireRate;
+
+    // Auto-reload if magazine emptied
+    if (player.currentAmmo <= 0) {
+      startReload(player, weapon);
+    }
   }
 }
 
 /**
- * Spawns a bullet from a shooter entity
- * @param {import('../state.js').GameState} state
- * @param {Object} shooter - Entity shooting the bullet
+ * Starts the reload process
+ * @param {Object} player - Player entity
+ * @param {Object} weapon - Weapon definition
  */
-function spawnBullet(state, shooter) {
-  // Calculate bullet velocity from shooter's angle
-  const speed = shooter.weapon.bulletSpeed;
-  const vx = Math.cos(shooter.angle) * speed;
-  const vy = Math.sin(shooter.angle) * speed;
+function startReload(player, weapon) {
+  if (player.isReloading) return;
 
-  // Spawn bullet at shooter position (could offset by radius later)
-  const bullet = createBullet(
-    state.nextId++,
-    shooter.pos.x,
-    shooter.pos.y,
-    vx,
-    vy,
-    shooter.weapon.damage,
-    shooter.type
-  );
+  player.isReloading = true;
+  player.reloadTimer = weapon.reloadTime;
+  console.log(`🔄 Reloading ${weapon.name}...`);
+}
 
-  state.entities.push(bullet);
+/**
+ * Fires the weapon, spawning bullets
+ * @param {import('../state.js').GameState} state
+ * @param {Object} player - Player entity
+ * @param {Object} weapon - Weapon definition
+ */
+function fireWeapon(state, player, weapon) {
+  const baseAngle = player.angle;
+
+  // Spawn multiple bullets if bulletsPerShot > 1
+  for (let i = 0; i < weapon.bulletsPerShot; i++) {
+    // Calculate spread angle
+    let angle = baseAngle;
+    if (weapon.spread > 0) {
+      if (weapon.bulletsPerShot > 1) {
+        // For shotgun: distribute bullets evenly across spread cone
+        const spreadRange = weapon.spread;
+        const step = spreadRange / (weapon.bulletsPerShot - 1);
+        angle = baseAngle - spreadRange / 2 + step * i;
+        // Add small random variation
+        angle += (Math.random() - 0.5) * 0.05;
+      } else {
+        // For single bullet weapons: random spread
+        angle += (Math.random() - 0.5) * weapon.spread;
+      }
+    }
+
+    // Calculate velocity
+    const vx = Math.cos(angle) * weapon.bulletSpeed;
+    const vy = Math.sin(angle) * weapon.bulletSpeed;
+
+    // Create bullet with weapon properties
+    const bullet = createBullet(
+      state.nextId++,
+      player.pos.x,
+      player.pos.y,
+      vx,
+      vy,
+      weapon.damage,
+      'player',
+      {
+        piercing: weapon.piercing,
+        color: weapon.bulletColor,
+        radius: weapon.bulletRadius
+      }
+    );
+
+    state.entities.push(bullet);
+  }
+}
+
+/**
+ * Switches the player's weapon
+ * @param {Object} player - Player entity
+ * @param {string} weaponId - New weapon ID
+ */
+export function switchWeapon(player, weaponId) {
+  const newWeapon = getWeapon(weaponId);
+  if (!newWeapon) return;
+
+  // Cancel any ongoing reload
+  player.isReloading = false;
+  player.reloadTimer = 0;
+
+  // Switch weapon
+  player.weaponId = weaponId;
+  player.currentAmmo = newWeapon.magazineSize;
+  player.weaponCooldown = 0;
+
+  console.log(`🔫 Switched to ${newWeapon.name}`);
 }

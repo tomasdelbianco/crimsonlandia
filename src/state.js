@@ -11,6 +11,8 @@
  * @property {boolean} keys.down
  * @property {boolean} keys.left
  * @property {boolean} keys.right
+ * @property {boolean} keys.reload - R key for manual reload
+ * @property {number|null} keys.weaponSwitch - 0-5 for weapon slots, null if no switch
  * @property {Object} mouse
  * @property {number} mouse.x - Canvas-space X
  * @property {number} mouse.y - Canvas-space Y
@@ -57,7 +59,9 @@ export function createInitialState(canvasWidth = 800, canvasHeight = 600) {
         up: false,
         down: false,
         left: false,
-        right: false
+        right: false,
+        reload: false,
+        weaponSwitch: null  // 0-5 for weapon slots, null if no switch
       },
       mouse: {
         x: canvasWidth / 2,
