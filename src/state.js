@@ -25,10 +25,15 @@
  * @property {Array} entities - All game entities
  * @property {InputState} input - Current input state
  * @property {Object} rng - Random number generator
- * @property {Object} spawn - Enemy spawning state
- * @property {number} spawn.timer - Time until next spawn
- * @property {number} spawn.interval - Seconds between spawns
- * @property {number} spawn.count - Total enemies spawned
+ * @property {Object} wave - Wave system state
+ * @property {number} wave.current - Current wave number
+ * @property {number} wave.enemiesTotal - Total enemies for this wave
+ * @property {number} wave.enemiesSpawned - Enemies spawned so far
+ * @property {number} wave.enemiesKilled - Enemies killed this wave
+ * @property {string} wave.state - 'countdown' | 'active' | 'cleared'
+ * @property {number} wave.countdown - Countdown timer
+ * @property {number} wave.spawnTimer - Timer until next spawn
+ * @property {number} wave.spawnInterval - Seconds between spawns
  * @property {string} gameState - "playing" | "paused" | "gameOver"
  */
 
@@ -61,10 +66,15 @@ export function createInitialState(canvasWidth = 800, canvasHeight = 600) {
       }
     },
     rng: null, // Initialized in main.js with seed
-    spawn: {
-      timer: 2.0, // First spawn after 2 seconds
-      interval: 2.0, // Spawn every 2 seconds
-      count: 0 // Total enemies spawned
+    wave: {
+      current: 1,              // Current wave number
+      enemiesTotal: 8,         // Total enemies for wave 1 (scales: 8, 11, 14...)
+      enemiesSpawned: 0,       // Enemies spawned so far
+      enemiesKilled: 0,        // Enemies killed this wave
+      state: 'countdown',      // 'countdown' | 'active' | 'cleared'
+      countdown: 3.0,          // Countdown timer (3s before wave starts)
+      spawnTimer: 0,           // Timer for next spawn
+      spawnInterval: 1.5       // Initial spawn interval (scales down per wave)
     },
     gameState: 'playing'
   };

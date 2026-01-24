@@ -37,6 +37,21 @@ Prototipo funcional de un shooter top-down estilo Crimsonland para web.
   - Game over cuando player muere
   - HUD muestra HP del jugador
 
+- ✅ **Milestone 6**: Waves
+  - Sistema de oleadas con dificultad progresiva
+  - Wave 1: 8 enemigos, spawn cada 1.5s
+  - Cada wave: +3 enemigos, spawn 0.2s más rápido
+  - Countdown de 3s entre waves
+  - HUD con número de wave y enemigos restantes
+  - Mensajes "Wave X" y "Wave Cleared!"
+
+- ✅ **Milestone 7**: Polish
+  - Partículas de explosión al morir enemigos (10 partículas rojas)
+  - Invincibility frames (0.5s de inmunidad después de recibir daño)
+  - Damage flash (jugador parpadea rojo/invisible al ser golpeado)
+  - Sound hooks preparados (sin audio real aún)
+  - Dificultad ajustada (más agresiva desde wave 1)
+
 ## 🚀 Cómo ejecutar
 
 ```bash
@@ -64,29 +79,34 @@ src/
 ├── state.js             # Game state management
 ├── input.js             # Input capture (keyboard + mouse)
 ├── rng.js               # Seedable RNG (Mulberry32)
+├── audio.js             # Sound hooks (ready for implementation)
 ├── entities/
 │   ├── player.js        # Player entity factory
 │   ├── bullet.js        # Bullet entity factory
-│   └── enemy.js         # Enemy entity factory
+│   ├── enemy.js         # Enemy entity factory
+│   └── particle.js      # Particle entity + explosion spawner
 ├── systems/
 │   ├── movement.js      # Movement & physics system
 │   ├── shooting.js      # Weapon firing & bullet spawning
-│   ├── enemies.js       # Enemy spawning & AI (seeking)
-│   ├── collision.js     # Collision detection & damage
+│   ├── enemies.js       # Enemy spawning, AI & wave management
+│   ├── collision.js     # Collision detection & damage + particles
 │   └── lifecycle.js     # TTL & entity cleanup
 └── render/
     ├── canvas.js        # Canvas setup & resize
-    └── draw.js          # Entity rendering
+    └── draw.js          # Entity rendering + visual effects
 ```
 
-## 🎯 Próximos Milestones
+## 🎯 Milestones
 
+- [x] M1: Boot & Loop
 - [x] M2: Player (WASD movement, mouse aim)
 - [x] M3: Shooting (bullets, cooldown)
 - [x] M4: Enemies (spawn, AI, HP)
 - [x] M5: Collisions
-- [ ] M6: Waves
-- [ ] M7: Polish
+- [x] M6: Waves
+- [x] M7: Polish
+
+**🎉 Prototipo completo!**
 
 ## 📝 Tech Stack
 

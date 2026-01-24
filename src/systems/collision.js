@@ -2,6 +2,9 @@
  * Collision system - Handles collision detection and damage
  */
 
+import { spawnExplosion } from '../entities/particle.js';
+import { playHit, playEnemyDeath, playPlayerHurt } from '../audio.js';
+
 /**
  * Updates all collisions in the game
  * @param {import('../state.js').GameState} state
@@ -18,7 +21,7 @@ export function updateCollisions(state) {
 
     for (const enemy of enemies) {
       if (checkCircleCollision(bullet, enemy)) {
-        handleBulletEnemyCollision(bullet, enemy);
+        handleBulletEnemyCollision(state, bullet, enemy);
         break; // Bullet can only hit one enemy
       }
     }
@@ -29,7 +32,7 @@ export function updateCollisions(state) {
 
   for (const enemy of enemies) {
     if (checkCircleCollision(enemy, player)) {
-      handleEnemyPlayerCollision(enemy, player);
+      handleEnemyPlayerCollision(state, enemy, player);
     }
   }
 }
@@ -52,25 +55,47 @@ function checkCircleCollision(a, b) {
 
 /**
  * Handles bullet hitting enemy
+ * @param {Object} state - Game state
  * @param {Object} bullet
  * @param {Object} enemy
  */
-function handleBulletEnemyCollision(bullet, enemy) {
+function handleBulletEnemyCollision(state, bullet, enemy) {
   // Deal damage to enemy
   enemy.hp -= bullet.damage;
 
   // Mark bullet for removal
   bullet.ttl = 0;
+
+  // Sound hook
+  playHit();
+
+  // Check if enemy died
+  if (enemy.hp <= 0) {
+    // Spawn death particles
+    spawnExplosion(state, enemy.pos.x, enemy.pos.y, '#ff4444', 10);
+    playEnemyDeath();
+  }
 }
 
 /**
  * Handles enemy touching player
+ * @param {Object} state - Game state
  * @param {Object} enemy
  * @param {Object} player
  */
-function handleEnemyPlayerCollision(enemy, player) {
+function handleEnemyPlayerCollision(state, enemy, player) {
+  // Only damage if player doesn't have invincibility frames
+  if (player.invincible > 0) return;
+
   // Deal damage to player
   player.hp -= enemy.damage;
 
-  // Future: Add knockback, damage cooldown, effects
+  // Give player brief invincibility (0.5s)
+  player.invincible = 0.5;
+
+  // Sound hook
+  playPlayerHurt();
+
+  // Visual feedback: flash player red
+  player.damageFlash = 0.1;
 }

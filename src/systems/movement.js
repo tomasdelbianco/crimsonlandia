@@ -19,6 +19,16 @@ export function updateMovement(state, dt) {
       if (!isMoving && entity.friction) {
         applyFriction(entity, dt);
       }
+
+      // Update invincibility timer
+      if (entity.invincible > 0) {
+        entity.invincible -= dt;
+      }
+
+      // Update damage flash timer
+      if (entity.damageFlash > 0) {
+        entity.damageFlash -= dt;
+      }
     }
 
     // Apply velocity to position

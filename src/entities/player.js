@@ -21,6 +21,8 @@ export function createPlayer(id, x, y) {
     angle: 0, // Direction the player is aiming (radians)
     moveSpeed: 200, // Units per second (movement speed)
     friction: true, // Apply friction when not moving
+    invincible: 0, // Invincibility frames timer (seconds)
+    damageFlash: 0, // Visual flash timer when taking damage
     weapon: {
       cooldown: 0, // Current cooldown timer
       fireRate: 0.15, // Time between shots (150ms = ~6.6 shots/sec)

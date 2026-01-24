@@ -28,14 +28,29 @@ export function drawEntities(ctx, entities) {
 function drawDebugCircle(ctx, entity) {
   ctx.save();
 
+  // Player-specific effects
+  if (entity.type === 'player') {
+    // Blink when invincible (skip drawing every other frame)
+    if (entity.invincible > 0 && Math.floor(entity.invincible * 20) % 2 === 0) {
+      ctx.restore();
+      return; // Skip drawing this frame (blink effect)
+    }
+  }
+
+  // Determine color (flash red when taking damage)
+  let color = entity.visual.color;
+  if (entity.type === 'player' && entity.damageFlash > 0) {
+    color = '#ff0000'; // Flash red
+  }
+
   // Draw circle
   ctx.beginPath();
   ctx.arc(entity.pos.x, entity.pos.y, entity.radius, 0, Math.PI * 2);
-  ctx.fillStyle = entity.visual.color;
+  ctx.fillStyle = color;
   ctx.fill();
 
-  // Draw border
-  ctx.strokeStyle = '#ffffff';
+  // Draw border (white normally, red when hurt)
+  ctx.strokeStyle = entity.damageFlash > 0 ? '#ff6666' : '#ffffff';
   ctx.lineWidth = 2;
   ctx.stroke();
 

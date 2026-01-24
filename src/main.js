@@ -114,26 +114,44 @@ function render(alpha) {
     return; // Don't render HUD
   }
 
-  // Debug info
-  ctx.fillStyle = '#00ff00';
-  ctx.font = '14px monospace';
-  ctx.fillText(`Tick: ${state.tick}`, 10, 20);
-  ctx.fillText(`Time: ${state.time.toFixed(2)}s`, 10, 40);
-  ctx.fillText(`Entities: ${state.entities.length}`, 10, 60);
+  // Wave info (top-right)
+  const wave = state.wave;
+  ctx.fillStyle = '#ffff00';
+  ctx.font = '20px monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText(`Wave ${wave.current}`, width - 10, 30);
 
-  // Show cooldown indicator
-  if (player.weapon) {
-    const cooldownPct = Math.max(0, (player.weapon.cooldown / player.weapon.fireRate) * 100);
-    ctx.fillText(`Cooldown: ${cooldownPct.toFixed(0)}%`, 10, 80);
+  ctx.font = '14px monospace';
+  const enemyCount = state.entities.filter(e => e.type === 'enemy').length;
+  const enemiesRemaining = wave.enemiesTotal - wave.enemiesSpawned + enemyCount;
+  ctx.fillText(`Enemies: ${enemiesRemaining}`, width - 10, 50);
+
+  ctx.textAlign = 'left';
+
+  // Wave state messages (center)
+  if (wave.state === 'countdown') {
+    ctx.fillStyle = '#ffff00';
+    ctx.font = '32px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Wave ${wave.current}`, width / 2, height / 2 - 20);
+    ctx.font = '48px monospace';
+    ctx.fillText(Math.ceil(wave.countdown).toString(), width / 2, height / 2 + 30);
+    ctx.textAlign = 'left';
+  } else if (wave.state === 'cleared') {
+    ctx.fillStyle = '#00ff00';
+    ctx.font = '32px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Wave Cleared!', width / 2, height / 2);
+    ctx.textAlign = 'left';
   }
 
-  // Show enemy count
-  const enemyCount = state.entities.filter(e => e.type === 'enemy').length;
-  ctx.fillText(`Enemies: ${enemyCount}`, 10, 100);
+  // Player HUD (top-left)
+  ctx.fillStyle = '#00ff00';
+  ctx.font = '14px monospace';
+  ctx.fillText(`HP: ${player.hp}/${player.maxHp}`, 10, 20);
+  ctx.fillText(`Time: ${state.time.toFixed(1)}s`, 10, 40);
 
-  // Show player HP
-  ctx.fillText(`HP: ${player.hp}/${player.maxHp}`, 10, 120);
-
+  // Controls hint
   ctx.fillText(`WASD: Move | Click: Shoot`, 10, height - 10);
 }
 
