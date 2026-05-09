@@ -3,11 +3,17 @@
  */
 
 /**
- * Draws all entities
+ * Draws all entities with camera offset
  * @param {CanvasRenderingContext2D} ctx
  * @param {Array} entities - Array of entities to draw
+ * @param {Object} camera - Camera state {x, y}
  */
-export function drawEntities(ctx, entities) {
+export function drawEntities(ctx, entities, camera) {
+  ctx.save();
+
+  // Apply camera offset (translate to camera position)
+  ctx.translate(-camera.x, -camera.y);
+
   for (const entity of entities) {
     if (entity.visual.kind === 'debug') {
       drawDebugCircle(ctx, entity);
@@ -18,6 +24,8 @@ export function drawEntities(ctx, entities) {
       }
     }
   }
+
+  ctx.restore();
 }
 
 /**
@@ -43,9 +51,16 @@ function drawDebugCircle(ctx, entity) {
     color = '#ff0000'; // Flash red
   }
 
+  // Calculate radius (pickups have a pulse effect)
+  let radius = entity.radius;
+  if (entity.type === 'pickup') {
+    const pulse = 1 + Math.sin(Date.now() / 200) * 0.15;
+    radius *= pulse;
+  }
+
   // Draw circle
   ctx.beginPath();
-  ctx.arc(entity.pos.x, entity.pos.y, entity.radius, 0, Math.PI * 2);
+  ctx.arc(entity.pos.x, entity.pos.y, radius, 0, Math.PI * 2);
   ctx.fillStyle = color;
   ctx.fill();
 

@@ -8,6 +8,7 @@ import { updateShooting, switchWeapon } from './systems/shooting.js';
 import { updateEnemies } from './systems/enemies.js';
 import { updateCollisions } from './systems/collision.js';
 import { updateLifecycle } from './systems/lifecycle.js';
+import { updateCamera } from './systems/camera.js';
 import { drawEntities } from './render/draw.js';
 import { getWeapon, getWeaponIds } from './data/weapons.js';
 
@@ -45,10 +46,12 @@ function init() {
   // Initialize input system
   initInput(canvas, initialState);
 
-  // Create player entity in the center
-  const player = createPlayer(initialState.nextId++, width / 2, height / 2);
+  // Create player entity in the center of the world
+  const worldCenterX = initialState.world.width / 2;
+  const worldCenterY = initialState.world.height / 2;
+  const player = createPlayer(initialState.nextId++, worldCenterX, worldCenterY);
   initialState.entities.push(player);
-  console.log('✅ Player spawned at center');
+  console.log(`✅ Player spawned at world center (${worldCenterX}, ${worldCenterY})`);
 
   console.log('✅ State initialized');
 
@@ -94,6 +97,9 @@ function tick(dt) {
   updateEnemies(state, dt, width, height);
   updateCollisions(state);
   updateLifecycle(state, dt);
+
+  // Update camera to follow player (after movement)
+  updateCamera(state, width, height);
 }
 
 /**
@@ -104,13 +110,49 @@ function render(alpha) {
   const ctx = getContext();
   const { width, height } = getCanvasSize();
   const state = getState();
+  const camera = state.camera;
+  const world = state.world;
 
-  // Clear screen
-  ctx.fillStyle = '#0a0a0a';
+  // 1. Clear screen with void color (black)
+  ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, width, height);
 
-  // Render entities
-  drawEntities(ctx, state.entities);
+  // 2. Draw world ground (the playable area)
+  const worldScreenX = -camera.x;
+  const worldScreenY = -camera.y;
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(worldScreenX, worldScreenY, world.width, world.height);
+
+  // 3. Draw grid pattern on world (for debugging camera movement)
+  const gridSize = 100;
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = 1;
+
+  // Vertical lines
+  for (let x = 0; x <= world.width; x += gridSize) {
+    const screenX = x - camera.x;
+    ctx.beginPath();
+    ctx.moveTo(screenX, worldScreenY);
+    ctx.lineTo(screenX, worldScreenY + world.height);
+    ctx.stroke();
+  }
+
+  // Horizontal lines
+  for (let y = 0; y <= world.height; y += gridSize) {
+    const screenY = y - camera.y;
+    ctx.beginPath();
+    ctx.moveTo(worldScreenX, screenY);
+    ctx.lineTo(worldScreenX + world.width, screenY);
+    ctx.stroke();
+  }
+
+  // 4. Draw world border (visible)
+  ctx.strokeStyle = '#444444';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(worldScreenX, worldScreenY, world.width, world.height);
+
+  // 4. Render entities with camera offset
+  drawEntities(ctx, state.entities, camera);
 
   // Check for player
   const player = state.entities.find(e => e.type === 'player');
@@ -200,6 +242,10 @@ function render(alpha) {
   // Controls hint
   ctx.fillStyle = '#888888';
   ctx.fillText(`WASD: Move | Click: Shoot | R: Reload | 1-6: Weapons`, 10, height - 10);
+
+  // Debug: Camera info (temporary)
+  ctx.fillStyle = '#666666';
+  ctx.fillText(`Camera: (${camera.x.toFixed(0)}, ${camera.y.toFixed(0)}) | Player: (${player.pos.x.toFixed(0)}, ${player.pos.y.toFixed(0)}) | Canvas: ${width}x${height}`, 10, height - 30);
 }
 
 /**

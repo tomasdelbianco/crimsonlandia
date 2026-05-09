@@ -3,7 +3,11 @@
  */
 
 import { spawnExplosion } from '../entities/particle.js';
-import { playHit, playEnemyDeath, playPlayerHurt } from '../audio.js';
+import { playHit, playEnemyDeath, playPlayerHurt, playPickup } from '../audio.js';
+import { createPickup } from '../entities/pickup.js';
+import { DROP_TABLES, getAvailableWeapons } from '../data/drops.js';
+import { switchWeapon } from './shooting.js';
+import { getWeapon } from '../data/weapons.js';
 
 /**
  * Updates all collisions in the game
@@ -51,6 +55,14 @@ export function updateCollisions(state) {
       handleEnemyPlayerCollision(state, enemy, player);
     }
   }
+
+  // 3. Pickup vs Player collisions
+  const pickups = state.entities.filter(e => e.type === 'pickup');
+  for (const pickup of pickups) {
+    if (checkCircleCollision(pickup, player)) {
+      handlePickupCollection(state, pickup, player);
+    }
+  }
 }
 
 /**
@@ -91,6 +103,8 @@ function handleBulletEnemyCollision(state, bullet, enemy) {
   if (enemy.hp <= 0) {
     // Spawn death particles
     spawnExplosion(state, enemy.pos.x, enemy.pos.y, '#ff4444', 10);
+    // Try to spawn a drop
+    trySpawnDrop(state, enemy);
     playEnemyDeath();
   }
 }
@@ -116,4 +130,73 @@ function handleEnemyPlayerCollision(state, enemy, player) {
 
   // Visual feedback: flash player red
   player.damageFlash = 0.1;
+}
+
+/**
+ * Attempts to spawn a drop when an enemy dies
+ * @param {Object} state - Game state
+ * @param {Object} enemy - The enemy that died
+ */
+function trySpawnDrop(state, enemy) {
+  const table = DROP_TABLES[enemy.enemyType] || DROP_TABLES.basic;
+
+  for (const [prob, pickupType, opts] of table) {
+    if (state.rng.random() < prob) {
+      const options = { ...opts };
+
+      // Weapon drops based on wave progression
+      if (pickupType === 'weapon') {
+        const available = getAvailableWeapons(state.wave.current);
+        if (available.length === 0) continue; // No weapons unlocked yet (wave 1)
+
+        // Pick random from available weapons
+        const idx = state.rng.randomInt(0, available.length);
+        options.weaponId = available[idx];
+      }
+
+      const pickup = createPickup(
+        state.nextId++,
+        enemy.pos.x,
+        enemy.pos.y,
+        pickupType,
+        options
+      );
+      state.entities.push(pickup);
+      return; // Only one drop per enemy
+    }
+  }
+}
+
+/**
+ * Handles player collecting a pickup
+ * @param {Object} state - Game state
+ * @param {Object} pickup - The pickup being collected
+ * @param {Object} player - The player collecting it
+ */
+function handlePickupCollection(state, pickup, player) {
+  switch (pickup.pickupType) {
+    case 'health':
+      player.hp = Math.min(player.maxHp, player.hp + pickup.value);
+      break;
+    case 'ammo':
+      // Reload current weapon to full
+      const weapon = getWeapon(player.weaponId);
+      if (weapon) {
+        player.currentAmmo = weapon.magazineSize;
+        player.isReloading = false;
+        player.reloadTimer = 0;
+      }
+      break;
+    case 'weapon':
+      if (pickup.weaponId) {
+        switchWeapon(player, pickup.weaponId);
+      }
+      break;
+  }
+
+  // Remove pickup
+  pickup.ttl = 0;
+
+  // Audio hook
+  playPickup();
 }

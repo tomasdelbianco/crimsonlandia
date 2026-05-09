@@ -58,3 +58,11 @@ export function playGameOver() {
   // console.log('🔊 Sound: game over');
   // TODO: Implement actual audio
 }
+
+/**
+ * Called when player collects a pickup
+ */
+export function playPickup() {
+  console.log('🎁 Pickup collected');
+  // TODO: Implement actual audio
+}

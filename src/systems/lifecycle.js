@@ -27,6 +27,17 @@ export function updateLifecycle(state, dt) {
       return false;
     }
 
+    // Remove entities outside world bounds (with margin)
+    // Don't remove player - they are clamped instead
+    if (state.world && entity.type !== 'player') {
+      const margin = 50; // Allow entities to go slightly outside before removal
+      const w = state.world;
+      if (entity.pos.x < -margin || entity.pos.x > w.width + margin ||
+          entity.pos.y < -margin || entity.pos.y > w.height + margin) {
+        return false;
+      }
+    }
+
     // Keep alive
     return true;
   });

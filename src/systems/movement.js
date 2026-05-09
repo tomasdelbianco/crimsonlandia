@@ -11,7 +11,7 @@ export function updateMovement(state, dt) {
   for (const entity of state.entities) {
     if (entity.type === 'player') {
       updatePlayerMovement(entity, state.input, dt);
-      updatePlayerAim(entity, state.input.mouse);
+      updatePlayerAim(entity, state.input.mouse, state.camera);
 
       // Apply friction only when not actively moving
       const isMoving = state.input.keys.up || state.input.keys.down ||
@@ -34,6 +34,13 @@ export function updateMovement(state, dt) {
     // Apply velocity to position
     entity.pos.x += entity.vel.x * dt;
     entity.pos.y += entity.vel.y * dt;
+
+    // Clamp player to world bounds
+    if (entity.type === 'player' && state.world) {
+      const r = entity.radius;
+      entity.pos.x = Math.max(r, Math.min(entity.pos.x, state.world.width - r));
+      entity.pos.y = Math.max(r, Math.min(entity.pos.y, state.world.height - r));
+    }
   }
 }
 
@@ -92,12 +99,17 @@ function applyFriction(entity, dt) {
 }
 
 /**
- * Updates player aim angle to point at mouse
+ * Updates player aim angle to point at mouse (converted to world coords)
  * @param {Object} player - Player entity
- * @param {Object} mousePos - Mouse position {x, y}
+ * @param {Object} mousePos - Mouse position in screen coords {x, y}
+ * @param {Object} camera - Camera state {x, y}
  */
-function updatePlayerAim(player, mousePos) {
-  const dx = mousePos.x - player.pos.x;
-  const dy = mousePos.y - player.pos.y;
+function updatePlayerAim(player, mousePos, camera) {
+  // Convert mouse screen coords to world coords
+  const worldMouseX = mousePos.x + camera.x;
+  const worldMouseY = mousePos.y + camera.y;
+
+  const dx = worldMouseX - player.pos.x;
+  const dy = worldMouseY - player.pos.y;
   player.angle = Math.atan2(dy, dx);
 }

@@ -27,6 +27,12 @@
  * @property {Array} entities - All game entities
  * @property {InputState} input - Current input state
  * @property {Object} rng - Random number generator
+ * @property {Object} world - World bounds
+ * @property {number} world.width - World width in pixels
+ * @property {number} world.height - World height in pixels
+ * @property {Object} camera - Camera position (top-left corner in world coords)
+ * @property {number} camera.x - Camera X position
+ * @property {number} camera.y - Camera Y position
  * @property {Object} wave - Wave system state
  * @property {number} wave.current - Current wave number
  * @property {number} wave.enemiesTotal - Total enemies for this wave
@@ -70,6 +76,14 @@ export function createInitialState(canvasWidth = 800, canvasHeight = 600) {
       }
     },
     rng: null, // Initialized in main.js with seed
+    world: {
+      width: 3200,   // World size (larger than most monitors to ensure camera movement)
+      height: 2400
+    },
+    camera: {
+      x: 0,  // Camera top-left position in world coords
+      y: 0
+    },
     wave: {
       current: 1,              // Current wave number
       enemiesTotal: 8,         // Total enemies for wave 1 (scales: 8, 11, 14...)

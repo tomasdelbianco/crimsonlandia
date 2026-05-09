@@ -103,40 +103,93 @@ function startNextWave(state) {
 }
 
 /**
- * Spawns an enemy at a random edge position
+ * Spawns an enemy near the viewport edge, clamped to world bounds
  * @param {import('../state.js').GameState} state
- * @param {number} width - Canvas width
- * @param {number} height - Canvas height
+ * @param {number} viewportWidth - Canvas width
+ * @param {number} viewportHeight - Canvas height
  */
-function spawnEnemy(state, width, height) {
-  const pos = getRandomEdgePosition(state.rng, width, height);
+function spawnEnemy(state, viewportWidth, viewportHeight) {
+  const pos = pickSpawnPointNearViewportEdge(state, viewportWidth, viewportHeight);
   const enemy = createEnemy(state.nextId++, pos.x, pos.y, 'basic');
   state.entities.push(enemy);
 }
 
 /**
- * Gets a random position on the edge of the screen
- * @param {Object} rng - Random number generator
- * @param {number} width - Canvas width
- * @param {number} height - Canvas height
+ * Picks a spawn point near viewport edge, clamped to world bounds
+ * @param {import('../state.js').GameState} state
+ * @param {number} vw - Viewport width
+ * @param {number} vh - Viewport height
  * @returns {{x: number, y: number}}
  */
-function getRandomEdgePosition(rng, width, height) {
-  const side = rng.randomInt(0, 4); // 0=top, 1=right, 2=bottom, 3=left
-  const margin = 20; // Spawn slightly outside visible area
+function pickSpawnPointNearViewportEdge(state, vw, vh) {
+  const cam = state.camera;
+  const world = state.world;
+  const margin = 30;          // Distance outside viewport to spawn
+  const minDistToPlayer = 100;
+  const maxRetries = 10;
 
-  switch (side) {
-    case 0: // Top
-      return { x: rng.randomRange(0, width), y: -margin };
-    case 1: // Right
-      return { x: width + margin, y: rng.randomRange(0, height) };
-    case 2: // Bottom
-      return { x: rng.randomRange(0, width), y: height + margin };
-    case 3: // Left
-      return { x: -margin, y: rng.randomRange(0, height) };
-    default:
-      return { x: width / 2, y: -margin };
+  const player = state.entities.find(e => e.type === 'player');
+
+  for (let i = 0; i < maxRetries; i++) {
+    const side = state.rng.randomInt(0, 4);
+    let x, y;
+
+    // Calculate viewport bounds in world coords
+    const viewLeft = cam.x;
+    const viewRight = cam.x + vw;
+    const viewTop = cam.y;
+    const viewBottom = cam.y + vh;
+
+    switch (side) {
+      case 0: // Top
+        x = state.rng.randomRange(viewLeft, viewRight);
+        y = viewTop - margin;
+        break;
+      case 1: // Right
+        x = viewRight + margin;
+        y = state.rng.randomRange(viewTop, viewBottom);
+        break;
+      case 2: // Bottom
+        x = state.rng.randomRange(viewLeft, viewRight);
+        y = viewBottom + margin;
+        break;
+      case 3: // Left
+        x = viewLeft - margin;
+        y = state.rng.randomRange(viewTop, viewBottom);
+        break;
+      default:
+        x = viewLeft;
+        y = viewTop - margin;
+    }
+
+    // Clamp to world bounds (ensure spawn is inside the world)
+    x = Math.max(0, Math.min(x, world.width));
+    y = Math.max(0, Math.min(y, world.height));
+
+    // Verify minimum distance to player
+    if (player) {
+      const dx = x - player.pos.x;
+      const dy = y - player.pos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < minDistToPlayer) {
+        continue; // Too close, retry
+      }
+    }
+
+    return { x, y };
   }
+
+  // Fallback: spawn in corner opposite to player
+  if (player) {
+    const px = player.pos.x;
+    const py = player.pos.y;
+    return {
+      x: px < world.width / 2 ? world.width - 20 : 20,
+      y: py < world.height / 2 ? world.height - 20 : 20
+    };
+  }
+
+  return { x: 0, y: 0 };
 }
 
 /**
